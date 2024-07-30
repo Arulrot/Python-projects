@@ -1,5 +1,5 @@
 
-print("Welcome to the Band Name Generator \n")
+print("Welcome to the Family Name Generator \n")
 
 Name=input("Enter your name : ")
 
