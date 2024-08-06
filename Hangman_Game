@@ -1,0 +1,36 @@
+import random 
+print("\nwelcome to hangman Game")
+
+words=["apple","orange","banana","grapes"]
+
+selected_word=random.choice(words)
+lenght_of_selectedword=len(selected_word)
+print(selected_word)
+for i in range(lenght_of_selectedword):
+    print("_",end=' ')
+
+
+guess=[] 
+
+Game_over=False
+
+while not Game_over:
+    display=''
+    guess_word=input("\nEnter a letter:").lower()
+    for char in selected_word:
+        if char==guess_word:
+            display+=char
+            guess.append(guess_word)
+            
+        elif char in guess:
+            display+=char
+           
+        else:
+            display+='_'
+            
+
+    print("\n",display)
+
+    if '_' not in display:
+        Game_over=True
+        print("\nyou won ")
