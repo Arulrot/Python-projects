@@ -1,135 +1,132 @@
-# import datetime
-# import time
-# card_pass_num=0000
-# acc_bal=6500
-# print("Arul Atm ")
-# print("Insert the card")
-# card_ins=int(input("press 1 to Insert card :"))
-# if card_ins==1:
-#         print("Please Wait Your transaction is under process !")
-#         time.sleep(2)
-#         card_pass=int(input("Enter your pssword :"))
-#         time.sleep(0.5)
-#         if card_pass==card_pass_num:
-#             print("Password Accepeted ")
-                
-#             print('''
-#                 1 - Balance 
-#                 2 - withdrawal 
-#                 3 - exit ''')
-#             menuopt=int(input("Enter your option "))
-#             if menuopt==1:
-#                 print(acc_bal)
-#             elif menuopt== 2:
-#                 with_amt=int(input("Enter your Withdrawal amount :"))
-#                 if with_amt>acc_bal:
-                    
-#                     print("insufficient Balance")
-                   
-#                 time.sleep(1)
-#                 print("please Wait ...")
-#                 time.sleep(2)
-#                 print("Please collect your cash ")
-#                 acc_bal=acc_bal-with_amt
-#                 rec_menu=input("Do you want recipt ? y / n ")
-#                 if rec_menu== 'y' :
-#                     print("\n--- RECEIPT ---")
-#                     print(datetime.datetime.now())
-#                     print("Amount With drawn =",with_amt)
-#                     print("remaining Balance =",acc_bal)
-#                     time.sleep(2)   
-#             elif menuopt==3:
-#                 print("exit initiated ")
-#             else:
-#                 print("Wrong input ")
-                
-#             time.sleep(0.5)
-#             print("Thank you for Banking With US ..")
-#             time.sleep(1)
-          
-#         else:
-#             print("Wrong Password ")
-# else:
-#     print("Card not inserted")
-                
-                
-                
 import time
-import datetime
+import mysql.connector
 
+# ------------------ DATABASE CONNECTION ------------------
+conn = mysql.connector.connect(
+    host='localhost',
+    user='root',
+    password='root',
+    database='atm'
+)
+cursor = conn.cursor()
+
+
+# ------------------ ATM OPERATIONS ------------------
 def withdraw(acc_bal):
-    wdth_amt=int(input("Enter Withdrawal Amount :"))
-    if wdth_amt>acc_bal:
-        print("Insufficient Balance :")
-    else :
-        print("please wait ..")
-        print("please collect your cash")
-        acc_bal-=wdth_amt
+    wdth_amt = int(input("\nEnter Withdrawal Amount : "))
+    if wdth_amt > acc_bal:
+        print("\nInsufficient Balance")
         return acc_bal
-        
-def balance_check(acc_bal):
-    print("Account balance is =",acc_bal)
-    
-    
+    else:
+        print("\nPlease wait...")
+        time.sleep(1.5)
+        print("Please collect your cash")
+        return acc_bal - wdth_amt
+
+
 def deposit(acc_bal):
-    dep_amt=int(input("Enter the deposit Amount:"))
-    print("Please Wait the amount is Being Deposited..")
-    acc_bal+=dep_amt
-    print("deposit Sucessfull")
+    dep_amt = int(input("\nEnter Deposit Amount : "))
+    print("\nProcessing deposit...")
+    time.sleep(1)
+    print("Deposit Successful")
+    return acc_bal + dep_amt
+
+
+def balance_check(acc_bal):
+    print("\nYour Account Balance is :", acc_bal)
     return acc_bal
-    
-def exit_init(session):
-    print("Thank you for banking with Us .. ")
-    session=False
-    return session
-    
-    
 
-def mechine_menu(acc_bal,session):
-    print('''
-          1-Cash Withdrawal 
-          2-balance Enquiry
-          3-deposit
-          4-exit''')
-    mechine_menu_int=int(input("Enter The Choice :"))
-    if mechine_menu_int==1:
-        acc_bal=withdraw(acc_bal)
-       
-    elif mechine_menu_int==2:
+
+def update_balance(card_number, acc_bal):
+    qry = "UPDATE customers SET balance = %s WHERE card_number = %s"
+    cursor.execute(qry, (acc_bal, card_number))
+    conn.commit()
+
+
+def exit_init():
+    print("\nThank you for banking with us!")
+    return False
+
+
+# ------------------ MENU ------------------
+def machine_menu(acc_bal, session, card_number):
+    print("""
+    1 - Cash Withdrawal
+    2 - Balance Enquiry
+    3 - Deposit
+    4 - Exit
+    """)
+
+    choice = int(input("Enter your choice : "))
+
+    if choice == 1:
+        new_bal = withdraw(acc_bal)
+        update_balance(card_number, new_bal)
+        return new_bal, session
+
+    elif choice == 2:
         balance_check(acc_bal)
-        
-    elif mechine_menu_int==3:
-        acc_bal=deposit(acc_bal)
-        
-    elif mechine_menu_int==4:
-        session=exit_init(session)
-    return acc_bal, session 
-        
-    
-    
-def main():
-    session=True
-    try_counter=0
-    card_pass=1234
-    acc_bal=15000
-    while session :
-        
-        print("Arul Atm ")
-        print("insert your card ")
-        print("Please with Your transcation in Processing")
-        card_pass_check=int(input("Enter your card Password :"))
-        if card_pass==card_pass_check:
-            print("password Accepted")
-            acc_bal,session=mechine_menu(acc_bal,session)
-            
-        else:
-            print("incorrect password ")
-            try_counter+=1
-            if try_counter>=3:
-                print("tries exceeded ..")
-                print("card blocked ..")
-                session=False
-        
+        return acc_bal, session
 
-if __name__=="__main__":
+    elif choice == 3:
+        new_bal = deposit(acc_bal)
+        update_balance(card_number, new_bal)
+        return new_bal, session
+
+    elif choice == 4:
+        session = exit_init()
+        return acc_bal, session
+
+    else:
+        print("\nInvalid option")
+        return acc_bal, session
+
+
+# ------------------ DATABASE FETCH FUNCTIONS ------------------
+def get_customer(card_number):
+    qry = "SELECT name, pin, balance FROM customers WHERE card_number = %s"
+    cursor.execute(qry, (card_number,))
+    return cursor.fetchone()
+
+
+# ------------------ MAIN PROGRAM ------------------
+def main():
+    session = True
+    try_counter = 0
+
+    print("====== ARUL ATM ======")
+    card_number = int(input("\nEnter your card number : "))
+    print("\nProcessing...")
+    time.sleep(1)
+
+    customer = get_customer(card_number)
+
+    if customer is None:
+        print("\nInvalid card number")
+        return
+
+    name, pin, acc_bal = customer
+    print(f"\nHello {name}")
+
+    while session:
+        entered_pin = int(input("\nEnter your PIN : "))
+
+        if entered_pin == pin:
+            print("\nPIN Accepted")
+            acc_bal, session = machine_menu(acc_bal, session, card_number)
+            try_counter = 0  # reset attempts after success
+        else:
+            print("\nIncorrect PIN")
+            try_counter += 1
+
+            if try_counter >= 3:
+                print("\nToo many wrong attempts")
+                print("Card Blocked")
+                break
+
+
+# ------------------ RUN PROGRAM ------------------
+if __name__ == "__main__":
     main()
+    cursor.close()
+    conn.close()
